@@ -77,9 +77,10 @@ functions should be good enough; otherwise, you should use an instance of
 
    .. versionadded:: 3.4
 
-.. function:: dedent(text)
+.. function:: dedent(text, *, eol_agnostic=True)
 
-   Remove any common leading whitespace from every line in *text*.
+   Remove any common leading whitespace from every line in *text*. "Whitespace"
+   refers to ``" "`` and ``"\t"``.
 
    This can be used to make triple-quoted strings line up with the left edge of the
    display, while still presenting them in the source code in indented form.
@@ -102,6 +103,21 @@ functions should be good enough; otherwise, you should use an instance of
           print(repr(s))          # prints '    hello\n      world\n    '
           print(repr(dedent(s)))  # prints 'hello\n  world\n'
 
+   If `eol_agnostic` is False (the default), legacy behavior is preserved which
+   does not account for CRLF. If `eol_agnostic` is True, lines that have only
+   whitespace and end with a single carriage return character are also
+   normalized to a single carriage return character followed by a single newline
+   character.
+
+   For example::
+
+      >>> dedent('  hello\r\n\r\n', eol_agnostic=False)
+      '  hello\r\n\r\n'
+      >>> dedent('  hello\r\n\r\n', eol_agnostic=True)
+      'hello\r\n\r\n'
+
+   .. versionchanged:: 3.12
+      Added the *eol_agnostic* option.
 
 .. function:: indent(text, prefix, predicate=None)
 

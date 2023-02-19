@@ -413,11 +413,25 @@ def shorten(text, width, **kwargs):
 
 # -- Loosely related functionality -------------------------------------
 
+# used to normalize lines with only whitespace characters (' ','\t') that end in
+# LF to a line with just a LF character
 _whitespace_only_re = re.compile('^[ \t]+$', re.MULTILINE)
-_leading_whitespace_re = re.compile('(^[ \t]*)(?:[^ \t\n])', re.MULTILINE)
+# used to normalize lines with only whitespace characters (' ','\t') that end in
+# CRLF to a line with just a CRLF character
+_whitespace_only_eol_agnostic_re = re.compile('^[ \t]+\r$', re.MULTILINE)
 
-def dedent(text):
+# used to find whitespace preceding a non whitespace character unless the line
+# matches '\n'
+_leading_whitespace_re = re.compile('(^[ \t]*)(?:[^ \t\n])', re.MULTILINE)
+# used to find whitespace using same rules as above except lines matching '\r\n'
+_leading_whitespace_eol_agnostic_re = re.compile('(?!\r$)(^[ \t]*)(?:[^ \t\n])',
+                                                 re.MULTILINE)
+
+
+def dedent(text, *, eol_agnostic=True):
     """Remove any common leading whitespace from every line in `text`.
+
+    Whitespace refers to " " and "\\t".
 
     This can be used to make triple-quoted strings line up with the left
     edge of the display, while still presenting them in the source code
@@ -427,13 +441,23 @@ def dedent(text):
     are not equal: the lines "  hello" and "\\thello" are
     considered to have no common leading whitespace.
 
-    Entirely blank lines are normalized to a newline character.
+    Lines containing only whitespace are ignored in the input and normalized to
+    a single newline character in the output. If `eol_agnostic` is False (the
+    default), legacy behavior is preserved which does not account for CRLF. If
+    `eol_agnostic` is True, lines that have only whitespace and end with a
+    single carriage return character are also normalized to a single carriage
+    return character followed by a single newline character.
     """
     # Look for the longest leading string of spaces and tabs common to
     # all lines.
     margin = None
     text = _whitespace_only_re.sub('', text)
-    indents = _leading_whitespace_re.findall(text)
+    if eol_agnostic:
+        text = _whitespace_only_eol_agnostic_re.sub('\r', text)
+        indents = _leading_whitespace_eol_agnostic_re.findall(text)
+    else:
+        indents = _leading_whitespace_re.findall(text)
+
     for indent in indents:
         if margin is None:
             margin = indent
